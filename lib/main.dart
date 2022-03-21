@@ -1,12 +1,11 @@
 import 'dart:convert';
-import 'dart:ffi';
+
 
 import 'package:flutter/material.dart';
 import 'package:alan_voice/alan_voice.dart';
 
 import 'dart:math';
 import 'package:roslibdart/roslibdart.dart';
-import 'package:json_annotation/json_annotation.dart';
 
 void main() {
   runApp(const MyApp());
@@ -55,7 +54,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
   late Ros ros;
   late Topic display;
   _MyHomePageState() {
@@ -65,6 +63,10 @@ class _MyHomePageState extends State<MyHomePage> {
     AlanVoice.setLogLevel("all");
   }
   int i = 0;
+  int level=0;
+  int times=0;
+  int statecap=11;
+
   List<String> faces = [
   "assets/images/orb_afraid.gif",
   "assets/images/orb_dirty_face.gif",
@@ -96,19 +98,90 @@ class _MyHomePageState extends State<MyHomePage> {
   "assets/images/orb_cry.gif",
   "assets/images/orb_puffing.gif",
   ];
+void checkIR(double code){
+  if(code == statecap){
+      switch (statecap) {
+        case 11:
+          statecap=101;
+          break;
+          case 101:
+          statecap=110;
+          break;
+          case 110:
+          statecap=11;
+          times=times+1;
+          break;
+          
+       
+      }
+     
+    }else if(code==11 && statecap==101){
+      times=times;
+    }
+    else if(code==101 && statecap==110){
+      times=times;
+    }
+    else if(code==110 && statecap==11){
+      times=times;
+    }
+    
+    
+    
+    else if(code!=111){
+      statecap=11;
+      times=0;
+    }
+    
+
+    print(code.toString()+" state is : "+statecap.toString()+"  times is : "+times.toString());
+
+
+
+    if(times==3){
+      times=0;
+    
+    AlanVoice.activate();
+    setState(() {
+      i=20;
+    });
+      AlanVoice.playText("thank you dear , keep doing this its very relaxing");
+      //sleep(Duration(seconds: 2));
+       setState(() {
+       i=11;
+     });
+
+    }
+}
+void checkSharp(double front,double back){
+  print("front =  "+front.toInt().toString()+" back = "+back.toInt().toString());
+  if(front > 40){
+    AlanVoice.activate();
+    AlanVoice.playText("no");
+  }
+  }
+void checkGyro(double x,double y,double z){
+  print("Roll =  "+x.toString()+"  Pitch = "+y.toString()+"  Yaw = "+z.toString());
+  }
 
   Future<void> subscribeHandler(Map<String, dynamic> msg) async {
-    print(json.encode(msg));
-    setState(() {});
+    var sensors=json.encode(msg);
+
+    double code=msg["ixx"]*100+msg["ixy"]*10+msg["ixz"];
+ 
+    //checkIR(code);
+    //checkSharp(msg["iyy"], msg["iyz"]);
+    checkGyro(msg["com"]["x"], msg["com"]["y"],msg["com"]["z"]);
+
+
   }
 
   @override
   void initState() {
-    ros = Ros(url: 'ws://127.0.0.1:9090');
+    ros = Ros(url: 'ws://192.168.1.11:9090');
     display = Topic(
         ros: ros,
-        name: '/display',
-        type: "std_msgs/String",
+        name: '/sensors',
+        type: "geometry_msgs/Inertia",
         reconnectOnClose: true,
         queueLength: 10,
         queueSize: 10);
@@ -122,12 +195,18 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _incrementCounter() {
+    
+      AlanVoice.activate();
+  
+    AlanVoice.playText("next");
     setState(() {
       i = (i + 1) % faces.length;
     });
   }
 
    void _decrementCounter() {
+     AlanVoice.activate();
+    AlanVoice.playText("previous");
     setState(() {
       i = max((i - 1) % faces.length, 0);
     });
