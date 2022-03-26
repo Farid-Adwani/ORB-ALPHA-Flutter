@@ -15,6 +15,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "2.8.2"
+  awesome_dialog:
+    dependency: "direct main"
+    description:
+      name: awesome_dialog
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "2.1.2"
   boolean_selector:
     dependency: transitive
     description:
@@ -22,6 +29,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "2.1.0"
+  button3d:
+    dependency: "direct main"
+    description:
+      name: button3d
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.1.1"
   characters:
     dependency: transitive
     description:
@@ -71,6 +85,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.2.0"
+  flare_flutter:
+    dependency: transitive
+    description:
+      name: flare_flutter
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "3.0.2"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -83,6 +104,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.0.4"
+  flutter_ripple:
+    dependency: "direct main"
+    description:
+      name: flutter_ripple
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.0.3"
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -137,6 +165,20 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.8.1"
+  progress_state_button:
+    dependency: "direct main"
+    description:
+      name: progress_state_button
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.0.4"
+  ripple_navigation:
+    dependency: "direct main"
+    description:
+      name: ripple_navigation
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.0.5"
   roslibdart:
     dependency: "direct main"
     description:
@@ -144,6 +186,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "0.0.1-dev+4"
+  simple_animations:
+    dependency: transitive
+    description:
+      name: simple_animations
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "4.0.1"
   sky_engine:
     dependency: transitive
     description: flutter
@@ -214,4 +263,4 @@ packages:
     version: "2.1.0"
 sdks:
   dart: ">=2.16.0-134.5.beta <3.0.0"
-  flutter: ">=1.20.0"
+  flutter: ">=2.2.1"
