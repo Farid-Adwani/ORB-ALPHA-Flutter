@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ffi';
 
 import 'package:flutter/material.dart';
 import 'package:alan_voice/alan_voice.dart';
@@ -58,12 +59,13 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   late Ros ros;
   late Topic display;
+  late Topic order;
+
   _MyHomePageState() {
     AlanVoice.addButton(
         "4db70e7a40290c970f6bf03ce5bc092b2e956eca572e1d8b807a3e2338fdd0dc/prod",
-        
         buttonAlign: AlanVoice.BUTTON_ALIGN_LEFT);
-    AlanVoice.setLogLevel("all");
+    AlanVoice.setLogLevel("none");
   }
 
   ButtonState stateOnlyText = ButtonState.idle;
@@ -71,12 +73,17 @@ class _MyHomePageState extends State<MyHomePage> {
   ButtonState stateTextWithIcon = ButtonState.idle;
   ButtonState stateTextWithIconMinWidthState = ButtonState.idle;
 
+  int compteurPutMeDown=0;
+  int compteurBehind=0;
+  int compteurFront=0;
+
   int i = 0;
   int level = 0;
   int times = 0;
   int statecap = 11;
   bool Password = true;
   var dialog;
+  late int ir1, ir2, ir3, sharp1, sharp2, gyrox, gyroy, gyroz;
 
   List<String> faces = [
     "assets/images/orb_afraid.gif",
@@ -110,6 +117,7 @@ class _MyHomePageState extends State<MyHomePage> {
     "assets/images/orb_puffing.gif",
   ];
   void checkIR(double code) {
+
     if (code == statecap) {
       switch (statecap) {
         case 11:
@@ -134,12 +142,12 @@ class _MyHomePageState extends State<MyHomePage> {
       times = 0;
     }
 
-    print(code.toString() +
-        " state is : " +
-        statecap.toString() +
-        "  times is : " +
-        times.toString());
-
+    // print(code.toString() +
+        // " state is : " +
+        // statecap.toString() +
+        // "  times is : " +
+        // times.toString());
+    // print("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" + times.toString());
     if (times == 3) {
       times = 0;
 
@@ -147,7 +155,7 @@ class _MyHomePageState extends State<MyHomePage> {
       setState(() {
         i = 20;
       });
-      AlanVoice.playText("thank you dear , keep doing this its very relaxing");
+      AlanVoice.playText("yayyy this is very relaxing");
       //sleep(Duration(seconds: 2));
       setState(() {
         i = 11;
@@ -160,33 +168,70 @@ class _MyHomePageState extends State<MyHomePage> {
         front.toInt().toString() +
         " back = " +
         back.toInt().toString());
-    if (front > 40) {
-      AlanVoice.activate();
-      AlanVoice.playText("no");
-    }
+         if (front.toInt()> 11 ){
+          compteurFront++;
+          if(compteurFront>50){
+            AlanVoice.activate();
+        AlanVoice.playText("i'm falling from front");
+        compteurFront=0;
+          }
+        }
+   if (back.toInt()> 15 ){
+          compteurBehind++;
+          if(compteurBehind>300){
+            AlanVoice.activate();
+        AlanVoice.playText("i'm falling from behind");
+        compteurBehind=0;
+          }
+        }
   }
 
   void checkGyro(double x, double y, double z) {
-    print("Roll =  " +
-        x.toString() +
-        "  Pitch = " +
-        y.toString() +
-        "  Yaw = " +
-        z.toString());
+    // print("Roll =  " +
+    //     x.toString() +
+    //     "  Pitch = " +
+    //     y.toString() +
+    //     "  Yaw = " +
+    //     z.toString());
+        if (x.toInt()> 60 || x.toInt()< -60){
+          compteurPutMeDown++;
+          if(compteurPutMeDown>200){
+            setState(() {
+              
+              i=0;
+            });
+            AlanVoice.activate();
+        AlanVoice.playText("Hey put me down");
+        compteurPutMeDown=0;
+        // setState(() {
+              
+        //       i=10;
+        //     });
+          }
+        }
   }
 
   Future<void> subscribeHandler(Map<String, dynamic> msg) async {
     var sensors = json.encode(msg);
 
     double code = msg["ixx"] * 100 + msg["ixy"] * 10 + msg["ixz"];
+    ir1 = msg["ixx"].toInt();
+    ir2 = msg["ixy"].toInt();
+    ir3 = msg["ixz"].toInt();
+    sharp1 = msg["iyy"].toInt();
+    sharp2 = msg["iyz"].toInt();
+    gyrox = msg["com"]["x"].toInt();
+    gyroy = msg["com"]["y"].toInt();
+    gyroz = msg["com"]["z"].toInt();
+    // print(code.toString());
 
-    //checkIR(code);
-    //checkSharp(msg["iyy"], msg["iyz"]);
+    checkIR(code);
+    checkSharp(msg["iyy"], msg["iyz"]);
     checkGyro(msg["com"]["x"], msg["com"]["y"], msg["com"]["z"]);
   }
 
   _handleCommand(Map<String, dynamic> response) {
-    print("aaaaaaaaaaaaaaaaaaa");
+    // print("aaaaaaaaaaaaaaaaaaa");
     print(response);
     if (response["command"] == "password") {
       if (response["password"] == "open the door") {
@@ -194,6 +239,56 @@ class _MyHomePageState extends State<MyHomePage> {
         dialog..dismiss();
       } else {
         AlanVoice.playText("but it's incorrect");
+      }
+    } else if (response["command"] == "order") {
+      if (response["order"].toString() == "forward") {
+        publishOrder(1);
+        print("done forwarding");
+      } else if (response["order"].toString() == "backward") {
+        publishOrder(2);
+        print("done backwarding");
+      } else if (response["order"].toString() == "to the right") {
+        publishOrder(3);
+        print("done moving right");
+      } else if (response["order"].toString() == "to the left") {
+        publishOrder(4);
+        print("done moving left");
+      }
+    } else if (response["command"] == "sensors") {
+      if (response["sensors"].toString() == "the first laser") {
+        AlanVoice.activate();
+        AlanVoice.playText(ir1.toInt().toString());
+      } else if (response["sensors"].toString() == "the second laser") {
+        AlanVoice.activate();
+
+        AlanVoice.playText(ir2.toInt().toString());
+      } else if (response["sensors"].toString() == "the third laser") {
+        AlanVoice.activate();
+
+        AlanVoice.playText(ir3.toInt().toString());
+      } else if (response["sensors"].toString() == "the first sharp") {
+        AlanVoice.activate();
+
+        AlanVoice.playText(sharp1.toInt().toString());
+      } else if (response["sensors"].toString() == "the second sharp") {
+        AlanVoice.activate();
+
+        AlanVoice.playText(sharp2.toInt().toString());
+      } else if (response["sensors"].toString() == "the gyro") {
+        AlanVoice.activate();
+        AlanVoice.playText("gyrooo yes");
+        String ch="on x axis we have " +
+            gyrox.toInt().toString() +
+            "on y axis we have " +
+            gyroy.toInt().toString() +
+            "and on z axis we have " +
+            gyroz.toInt().toString();
+        AlanVoice.playText(ch.toString());
+      }
+      else  {
+        AlanVoice.activate();
+
+        AlanVoice.playText("please select a sensor");
       }
     }
     // switch(response[“command”]){
@@ -209,17 +304,24 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void initState() {
-    ros = Ros(url: 'ws://192.168.1.11:9090');
+    ros = Ros(url: 'ws://192.168.225.112:9090');
     display = Topic(
         ros: ros,
         name: '/sensors',
         type: "geometry_msgs/Inertia",
         reconnectOnClose: true,
+        queueLength: 1000,
+        queueSize: 1000);
+    order = Topic(
+        ros: ros,
+        name: '/order',
+        type: "std_msgd=s/Int32",
+        reconnectOnClose: true,
         queueLength: 10,
         queueSize: 10);
     ros.connect();
     initializeTopics();
-
+    // dialog..show();
     AlanVoice.callbacks.add((command) => _handleCommand(command.data));
 
     super.initState();
@@ -227,11 +329,18 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> initializeTopics() async {
     await display.subscribe(subscribeHandler);
+    await order.advertise();
+  }
+
+  void publishOrder(int x) async {
+    var msg = {'data': x};
+    await order.publish(msg);
+    print('done publihsed');
   }
 
   void _incrementCounter() {
     AlanVoice.activate();
-  
+
     AlanVoice.playText("Please say your Password");
     // setState(() {
     //   i = (i + 1) % faces.length;
@@ -240,6 +349,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _decrementCounter() {
+    publishOrder(i % 5);
     AlanVoice.activate();
     AlanVoice.playText("previous");
     setState(() {
@@ -259,9 +369,9 @@ class _MyHomePageState extends State<MyHomePage> {
     dialog = AwesomeDialog(
       context: context,
       dialogType: DialogType.ERROR,
-      borderSide: BorderSide(color: Colors.pinkAccent, width: 5),
+      borderSide: BorderSide(color:Colors.red, width: 5),
       // width: 280,
-      buttonsBorderRadius: BorderRadius.all(Radius.circular(5)),
+      buttonsBorderRadius: BorderRadius.all(Radius.circular(10)),
       animType: AnimType.SCALE,
       title: 'Authentification',
       desc: 'Voice Authentification',
@@ -270,11 +380,10 @@ class _MyHomePageState extends State<MyHomePage> {
       dismissOnBackKeyPress: false,
       dismissOnTouchOutside: false,
 
-
       body: Center(
           child: Column(children: [
         Text(
-          "Please Say your Secret Word :)\n say << THE PASSWORD IS your_password >>",
+          "Please Say your Secret Word :)",
           style: TextStyle(
             fontStyle: FontStyle.italic,
             color: Colors.red,
@@ -289,7 +398,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   print("pressed");
                 },
                 icon: Icon(Icons.multitrack_audio_rounded)),
-            rippleColor: Colors.pinkAccent,
+            rippleColor: Color.fromARGB(255, 164, 7, 7),
             duration: Duration(milliseconds: 1500),
             onTap: () {
               print("hello");
@@ -313,7 +422,7 @@ class _MyHomePageState extends State<MyHomePage> {
         // in the middle of the parent.
         child: GestureDetector(
           child: RotatedBox(
-            quarterTurns: 1,
+            quarterTurns: 2,
             child: Image.asset(
               faces[i],
               fit: BoxFit.cover,
