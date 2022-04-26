@@ -266,17 +266,17 @@ class _MyHomePageState extends State<MyHomePage> {
         AlanVoice.activate();
 
         AlanVoice.playText(ir3.toInt().toString());
-      } else if (response["sensors"].toString() == "the first sharp") {
+      } else if (response["sensors"].toString() == "the first Sharp") {
         AlanVoice.activate();
 
         AlanVoice.playText(sharp1.toInt().toString());
-      } else if (response["sensors"].toString() == "the second sharp") {
+      } else if (response["sensors"].toString() == "the second Sharp") {
         AlanVoice.activate();
 
         AlanVoice.playText(sharp2.toInt().toString());
       } else if (response["sensors"].toString() == "the gyro") {
         AlanVoice.activate();
-        AlanVoice.playText("gyrooo yes");
+        // AlanVoice.playText("gyrooo yes");
         String ch="on x axis we have " +
             gyrox.toInt().toString() +
             "on y axis we have " +
@@ -304,7 +304,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void initState() {
-    ros = Ros(url: 'ws://192.168.225.112:9090');
+    ros = Ros(url: 'ws://192.168.170.112:9090');
     display = Topic(
         ros: ros,
         name: '/sensors',
@@ -422,7 +422,7 @@ class _MyHomePageState extends State<MyHomePage> {
         // in the middle of the parent.
         child: GestureDetector(
           child: RotatedBox(
-            quarterTurns: 2,
+            quarterTurns: 3,
             child: Image.asset(
               faces[i],
               fit: BoxFit.cover,
