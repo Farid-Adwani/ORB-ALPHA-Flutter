@@ -21,7 +21,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'ORB ALPHA',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         // This is the theme of your application.
@@ -73,9 +73,9 @@ class _MyHomePageState extends State<MyHomePage> {
   ButtonState stateTextWithIcon = ButtonState.idle;
   ButtonState stateTextWithIconMinWidthState = ButtonState.idle;
 
-  int compteurPutMeDown=0;
-  int compteurBehind=0;
-  int compteurFront=0;
+  int compteurPutMeDown = 0;
+  int compteurBehind = 0;
+  int compteurFront = 0;
 
   int i = 0;
   int level = 0;
@@ -117,7 +117,6 @@ class _MyHomePageState extends State<MyHomePage> {
     "assets/images/orb_puffing.gif",
   ];
   void checkIR(double code) {
-
     if (code == statecap) {
       switch (statecap) {
         case 11:
@@ -143,10 +142,10 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     // print(code.toString() +
-        // " state is : " +
-        // statecap.toString() +
-        // "  times is : " +
-        // times.toString());
+    // " state is : " +
+    // statecap.toString() +
+    // "  times is : " +
+    // times.toString());
     // print("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" + times.toString());
     if (times == 3) {
       times = 0;
@@ -168,22 +167,22 @@ class _MyHomePageState extends State<MyHomePage> {
         front.toInt().toString() +
         " back = " +
         back.toInt().toString());
-         if (front.toInt()> 11 ){
-          compteurFront++;
-          if(compteurFront>50){
-            AlanVoice.activate();
+    if (front.toInt() > 11) {
+      compteurFront++;
+      if (compteurFront > 50) {
+        AlanVoice.activate();
         AlanVoice.playText("i'm falling from front");
-        compteurFront=0;
-          }
-        }
-   if (back.toInt()> 15 ){
-          compteurBehind++;
-          if(compteurBehind>300){
-            AlanVoice.activate();
-        AlanVoice.playText("i'm falling from behind");
-        compteurBehind=0;
-          }
-        }
+        compteurFront = 0;
+      }
+    }
+    // if (back.toInt() > 15) {
+    //   compteurBehind++;
+    //   if (compteurBehind > 300) {
+    //     AlanVoice.activate();
+    //     AlanVoice.playText("i'm falling from behind");
+    //     compteurBehind = 0;
+    //   }
+    // }
   }
 
   void checkGyro(double x, double y, double z) {
@@ -193,22 +192,21 @@ class _MyHomePageState extends State<MyHomePage> {
     //     y.toString() +
     //     "  Yaw = " +
     //     z.toString());
-        if (x.toInt()> 60 || x.toInt()< -60){
-          compteurPutMeDown++;
-          if(compteurPutMeDown>200){
-            setState(() {
-              
-              i=0;
-            });
-            AlanVoice.activate();
+    if (x.toInt() > 60 || x.toInt() < -60) {
+      compteurPutMeDown++;
+      if (compteurPutMeDown > 200) {
+        setState(() {
+          i = 0;
+        });
+        AlanVoice.activate();
         AlanVoice.playText("Hey put me down");
-        compteurPutMeDown=0;
+        compteurPutMeDown = 0;
         // setState(() {
-              
+
         //       i=10;
         //     });
-          }
-        }
+      }
+    }
   }
 
   Future<void> subscribeHandler(Map<String, dynamic> msg) async {
@@ -227,7 +225,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     checkIR(code);
     checkSharp(msg["iyy"], msg["iyz"]);
-    checkGyro(msg["com"]["x"], msg["com"]["y"], msg["com"]["z"]);
+    // checkGyro(msg["com"]["x"], msg["com"]["y"], msg["com"]["z"]);
   }
 
   _handleCommand(Map<String, dynamic> response) {
@@ -277,15 +275,14 @@ class _MyHomePageState extends State<MyHomePage> {
       } else if (response["sensors"].toString() == "the gyro") {
         AlanVoice.activate();
         // AlanVoice.playText("gyrooo yes");
-        String ch="on x axis we have " +
+        String ch = "on x axis we have " +
             gyrox.toInt().toString() +
             "on y axis we have " +
             gyroy.toInt().toString() +
             "and on z axis we have " +
             gyroz.toInt().toString();
         AlanVoice.playText(ch.toString());
-      }
-      else  {
+      } else {
         AlanVoice.activate();
 
         AlanVoice.playText("please select a sensor");
@@ -304,7 +301,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void initState() {
-    ros = Ros(url: 'ws://192.168.170.112:9090');
+    ros = Ros(url: 'ws://192.168.204.253:9090');
     display = Topic(
         ros: ros,
         name: '/sensors',
@@ -369,7 +366,7 @@ class _MyHomePageState extends State<MyHomePage> {
     dialog = AwesomeDialog(
       context: context,
       dialogType: DialogType.ERROR,
-      borderSide: BorderSide(color:Colors.red, width: 5),
+      borderSide: BorderSide(color: Colors.red, width: 5),
       // width: 280,
       buttonsBorderRadius: BorderRadius.all(Radius.circular(10)),
       animType: AnimType.SCALE,

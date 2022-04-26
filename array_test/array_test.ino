@@ -27,8 +27,8 @@ Servo servo3 ;
 
 #define mr1 6
 #define mr2 11
-#define ml1 5
-#define ml2 3
+#define ml1 3
+#define ml2 5SSSU
 
 
 void forward(int vit){
