@@ -1,14 +1,17 @@
 import 'dart:convert';
-import 'dart:ffi';
-
-import 'package:flutter/material.dart';
+import 'package:alan_voice/alan_callback.dart';
 import 'package:alan_voice/alan_voice.dart';
-import 'package:progress_state_button/iconed_button.dart';
-import 'package:progress_state_button/progress_button.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter/material.dart';
+import 'package:progress_state_button/progress_button.dart' as pb;
 import 'dart:math';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:roslibdart/roslibdart.dart';
 import 'package:flutter_ripple/flutter_ripple.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:ping_discover_network_forked/ping_discover_network_forked.dart';
+import 'package:wifi_info_flutter/wifi_info_flutter.dart'as inf;
+
 
 void main() {
   runApp(const MyApp());
@@ -56,35 +59,63 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   late Ros ros;
   late Topic display;
   late Topic order;
+  late Topic name;
+  late Topic recognition;
+  late Topic facesTopic;
+  late Topic talk;
+  bool param = false;
+  String devicesIP = "192.168.124.235";
+  bool arja3 = false;
 
+  bool begin = true;
+  bool canSay = false;
+  double height = 0;
+  double width = 0;
+  bool canChangeFace=false;
+  bool espActive = false;
   _MyHomePageState() {
     AlanVoice.addButton(
-        "4db70e7a40290c970f6bf03ce5bc092b2e956eca572e1d8b807a3e2338fdd0dc/prod",
-        buttonAlign: AlanVoice.BUTTON_ALIGN_LEFT);
-    AlanVoice.setLogLevel("none");
+      "4db70e7a40290c970f6bf03ce5bc092b2e956eca572e1d8b807a3e2338fdd0dc/prod",
+    );
+    AlanVoice.setLogLevel("all");
   }
 
-  ButtonState stateOnlyText = ButtonState.idle;
-  ButtonState stateOnlyCustomIndicatorText = ButtonState.idle;
-  ButtonState stateTextWithIcon = ButtonState.idle;
-  ButtonState stateTextWithIconMinWidthState = ButtonState.idle;
-
+  pb.ButtonState stateOnlyText = pb.ButtonState.idle;
+  pb.ButtonState stateOnlyCustomIndicatorText = pb.ButtonState.idle;
+  pb.ButtonState stateTextWithIcon = pb.ButtonState.idle;
+  pb.ButtonState stateTextWithIconMinWidthState = pb.ButtonState.idle;
+  var player = AudioPlayer();
   int compteurPutMeDown = 0;
   int compteurBehind = 0;
   int compteurFront = 0;
-
-  int i = 0;
+  bool eleminateOne = true;
+  int i = 6;
   int level = 0;
   int times = 0;
   int statecap = 11;
-  bool Password = true;
+  bool password = true;
+  String rosUrl = 'ws://192.168.184.112:9090';
+  String cameraIP="192.168.233.233";
   var dialog;
+  String CurrentFace = "unknown";
   late int ir1, ir2, ir3, sharp1, sharp2, gyrox, gyroy, gyroz;
-
+  List<String> musics = [
+    "ArrDee - Oliver Twist.mp3",
+    "habaytak.mp3",
+    "JenJoon - Chkoun F_eddar.mp3",
+    "Rilès - BETTER DAYS.mp3",
+    "Die For You.mp3",
+    "Imagine Dragons - Bones.mp3",
+    "Jungle.mp3",
+    "SOFI TUKKER - Purple Hat.mp3",
+    "Freestyle.mp3",
+    "Imagine Dragons x J.I.D - Enemy.mp3",
+    "Macklemore x Ryan Lewis _WINGS.mp3"
+  ];
   List<String> faces = [
     "assets/images/orb_afraid.gif",
     "assets/images/orb_dirty_face.gif",
@@ -116,6 +147,54 @@ class _MyHomePageState extends State<MyHomePage> {
     "assets/images/orb_cry.gif",
     "assets/images/orb_puffing.gif",
   ];
+  String CurrentTrack = "assets/music/SOFI TUKKER - Purple Hat.mp3";
+
+  void active() {
+    if (AlanVoice.isActive() == false) {
+      AlanVoice.activate();
+    }
+    AlanVoice.activate();
+  }
+
+  void playUrl(url) async {
+    var duration = await player.setUrl('https://foo.com/bar.mp3');
+    await player.play();
+  }
+
+  void playLocal(String localPath) async {
+    var duration = await player.setAsset(localPath);
+    // print(localPath);
+    await player.play();
+  }
+
+  void pausePlayer() async {
+    await player.pause();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        // print("app in resumed");
+        active();
+        // print("Please say your password");
+        // AlanVoice.playText("Please say your password");
+
+        // dialog..show();
+        break;
+      case AppLifecycleState.inactive:
+        // print("app in inactive");
+        break;
+      case AppLifecycleState.paused:
+        // print("app in paused");
+        break;
+
+      case AppLifecycleState.detached:
+        // TODO: Handle this case.
+        break;
+    }
+  }
+
   void checkIR(double code) {
     if (code == statecap) {
       switch (statecap) {
@@ -150,27 +229,29 @@ class _MyHomePageState extends State<MyHomePage> {
     if (times == 3) {
       times = 0;
 
-      AlanVoice.activate();
+      active();
       setState(() {
         i = 20;
+        publishOrder(110);
       });
       AlanVoice.playText("yayyy this is very relaxing");
+      arja3=true;
       //sleep(Duration(seconds: 2));
-      setState(() {
-        i = 11;
-      });
+      // setState(() {
+      //   i = 11;
+      // });
     }
   }
 
   void checkSharp(double front, double back) {
-    print("front =  " +
-        front.toInt().toString() +
-        " back = " +
-        back.toInt().toString());
+    // print("front =  " +
+    //     front.toInt().toString() +
+    //     " back = " +
+    //     back.toInt().toString());
     if (front.toInt() > 11) {
       compteurFront++;
       if (compteurFront > 50) {
-        AlanVoice.activate();
+        active();
         AlanVoice.playText("i'm falling from front");
         compteurFront = 0;
       }
@@ -178,7 +259,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // if (back.toInt() > 15) {
     //   compteurBehind++;
     //   if (compteurBehind > 300) {
-    //     AlanVoice.activate();
+    //     active();
     //     AlanVoice.playText("i'm falling from behind");
     //     compteurBehind = 0;
     //   }
@@ -198,7 +279,7 @@ class _MyHomePageState extends State<MyHomePage> {
         setState(() {
           i = 0;
         });
-        AlanVoice.activate();
+        active();
         AlanVoice.playText("Hey put me down");
         compteurPutMeDown = 0;
         // setState(() {
@@ -209,8 +290,70 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  Future<void> talkSub(Map<String, dynamic> msg) async {
+    // var sentnece = json.encode(msg);
+    // print(sentnece);
+    String toSay = msg["data"];
+    // print("I 'm Saying " + toSay);
+    active();
+    AlanVoice.playText(toSay);
+  }
+
+  Future<void> facesSub(Map<String, dynamic> msg) async {
+    // var face = json.encode(msg);
+    // print(face);
+    CurrentFace = msg["data"];
+    // print(CurrentFace + "rrrrrrrrrr");
+    if (canSay == true && CurrentFace != "unknown") {
+      AlanVoice.playText("you are " + CurrentFace + " right?");
+      canSay = false;
+    }
+  }
+
+  void sendDeviceOrder(String device, String order) async {
+    String dev = "0";
+    if (device.contains("TV")) {
+      dev = "0";
+    } else if (device.contains("light")) {
+      dev = "1";
+    } else {
+      dev = "3";
+    }
+
+    String url =
+        "http://" + devicesIP + "/orb?device=" + dev + "&order=" + order;
+    // print(url);
+//  print(res.body);
+    var res;
+    try {
+      res = await http.get(Uri.parse(url));
+      if (espActive == false) {
+        setState(() {
+          espActive = true;
+        });
+      }
+    } catch (e) {
+      AlanVoice.activate();
+      AlanVoice.playText(
+          "I can not do that.Please check the ip address of your the ESP");
+      setState(() {
+        espActive = false;
+      });
+    }
+
+    var x = json.decode(res.body);
+    // print(x);
+    if (x["state"] == "done") {
+      AlanVoice.activate();
+      AlanVoice.playText("You order is done");
+    } else {
+      AlanVoice.activate();
+      AlanVoice.playText("I can not do that there is a problem");
+    }
+  }
+
   Future<void> subscribeHandler(Map<String, dynamic> msg) async {
-    var sensors = json.encode(msg);
+    // var sensors = json.encode(msg);
 
     double code = msg["ixx"] * 100 + msg["ixy"] * 10 + msg["ixz"];
     ir1 = msg["ixx"].toInt();
@@ -230,78 +373,242 @@ class _MyHomePageState extends State<MyHomePage> {
 
   _handleCommand(Map<String, dynamic> response) {
     // print("aaaaaaaaaaaaaaaaaaa");
-    print(response);
-    if (response["command"] == "password") {
-      if (response["password"] == "open the door") {
-        AlanVoice.playText("it's correct congratulations");
-        dialog..dismiss();
-      } else {
-        AlanVoice.playText("but it's incorrect");
-      }
-    } else if (response["command"] == "order") {
-      if (response["order"].toString() == "forward") {
-        publishOrder(1);
-        print("done forwarding");
-      } else if (response["order"].toString() == "backward") {
-        publishOrder(2);
-        print("done backwarding");
-      } else if (response["order"].toString() == "to the right") {
-        publishOrder(3);
-        print("done moving right");
-      } else if (response["order"].toString() == "to the left") {
-        publishOrder(4);
-        print("done moving left");
-      }
-    } else if (response["command"] == "sensors") {
-      if (response["sensors"].toString() == "the first laser") {
-        AlanVoice.activate();
-        AlanVoice.playText(ir1.toInt().toString());
-      } else if (response["sensors"].toString() == "the second laser") {
-        AlanVoice.activate();
+    if (eleminateOne == true) {
+      eleminateOne = false;
+    } else {
+      eleminateOne = true;
+      print(response);
+      if (response["command"] == "password") {
+        if (response["password"] == "open the door") {
+          dialog..dismiss();
+          AlanVoice.playText("it's correct congratulations");
+        } else {
+          AlanVoice.playText("but it's incorrect");
+        }
+      } else if (response["command"] == "order") {
+        if (response["order"].toString() == "forward") {
+          publishOrder(1);
+          // print("done forwarding");
+        } else if (response["order"].toString() == "backward") {
+          publishOrder(2);
+          // print("done backwarding");
+        } else if (response["order"].toString() == "to the right") {
+          publishOrder(3);
+          // print("done moving right");
+        } else if (response["order"].toString() == "to the left") {
+          publishOrder(4);
+          // print("done moving left");
+        }
+      } else if (response["command"] == "sensors") {
+        if (response["sensors"].toString() == "the first laser") {
+          active();
+          AlanVoice.playText(ir1.toInt().toString());
+        } else if (response["sensors"].toString() == "the second laser") {
+          active();
 
-        AlanVoice.playText(ir2.toInt().toString());
-      } else if (response["sensors"].toString() == "the third laser") {
-        AlanVoice.activate();
+          AlanVoice.playText(ir2.toInt().toString());
+        } else if (response["sensors"].toString() == "the third laser") {
+          active();
 
-        AlanVoice.playText(ir3.toInt().toString());
-      } else if (response["sensors"].toString() == "the first Sharp") {
-        AlanVoice.activate();
+          AlanVoice.playText(ir3.toInt().toString());
+        } else if (response["sensors"].toString() == "the first Sharp") {
+          active();
 
-        AlanVoice.playText(sharp1.toInt().toString());
-      } else if (response["sensors"].toString() == "the second Sharp") {
-        AlanVoice.activate();
+          AlanVoice.playText(sharp1.toInt().toString());
+        } else if (response["sensors"].toString() == "the second Sharp") {
+          active();
 
-        AlanVoice.playText(sharp2.toInt().toString());
-      } else if (response["sensors"].toString() == "the gyro") {
-        AlanVoice.activate();
-        // AlanVoice.playText("gyrooo yes");
-        String ch = "on x axis we have " +
-            gyrox.toInt().toString() +
-            "on y axis we have " +
-            gyroy.toInt().toString() +
-            "and on z axis we have " +
-            gyroz.toInt().toString();
-        AlanVoice.playText(ch.toString());
-      } else {
-        AlanVoice.activate();
+          AlanVoice.playText(sharp2.toInt().toString());
+        } else if (response["sensors"].toString() == "the gyro") {
+          active();
+          // AlanVoice.playText("gyrooo yes");
+          String ch = "on x axis we have " +
+              gyrox.toInt().toString() +
+              "on y axis we have " +
+              gyroy.toInt().toString() +
+              "and on z axis we have " +
+              gyroz.toInt().toString();
+          AlanVoice.playText(ch.toString());
+        } else {
+          active();
 
-        AlanVoice.playText("please select a sensor");
+          AlanVoice.playText("please select a sensor");
+        }
+      } else if (response["command"] == "saveFace") {
+        publishName(response["Face"]);
+      } else if (response["command"] == "removeFace") {
+        publishName("remove_" + response["Face"]);
+      } else if (response["command"] == "recognition") {
+        if (response["recognition"] == "start") {
+          canSay = true;
+        } else if (response["recognition"] == "stop") {
+          CurrentFace = "unknown";
+        }
+        publishRecognition(response["recognition"]);
+      } else if (response["command"] == "music") {
+        if (response["music"] == "play") {
+          // publishOrder(200);
+
+          CurrentTrack =
+              "assets/music/" + musics[Random().nextInt(musics.length)];
+          playLocal(CurrentTrack);
+        } else if (response["music"] == "resume") {
+          // publishOrder(200);
+
+          playLocal(CurrentTrack);
+        } else if (response["music"] == "pause") {
+          // publishOrder(201);
+
+          pausePlayer();
+        }
+      } else if (response["command"] == "settings") {
+        if (response["settings"] == "show") {
+          setState(() {
+            param = true;
+          });
+        } else if (response["settings"] == "hide") {
+          setState(() {
+            param = false;
+          });
+        }
+      } else if (response["command"] == "ros") {
+        if (response["ros"] == "connect") {
+          initializeTopics();
+          setState(() {});
+        } else if (response["ros"] == "disconnect") {
+          ros.close();
+          setState(() {});
+        }
+      } else if (response["command"] == "rosIP") {
+        List<String> x;
+        x = response["rosIP"].toString().split('/');
+        print(x);
+
+        rosUrl = "ws://" +
+            x[0].trim() +
+            "." +
+            x[1].trim() +
+            "." +
+            x[2].trim() +
+            "." +
+            x[3].trim() +
+            ":9090";
+        initializeTopics();
+        setState(() {});
+      } else if (response["command"] == "devicesIP") {
+        List<String> x;
+        x = response["IP"].toString().split('/');
+        print(x);
+
+        devicesIP = x[0].trim() +
+            "." +
+            x[1].trim() +
+            "." +
+            x[2].trim() +
+            "." +
+            x[3].trim();
+        setState(() {});
+      } else if (response["command"] == "deviceOrder") {
+        String device;
+        device = response["device"].toString();
+        print("device number: " + device.toString());
+        String order = "";
+        order = response["order"].toString();
+        print("order: " + order.toString());
+        sendDeviceOrder(device, order);
+        setState(() {});
+      } else if (response["command"] == "expression") {
+        String expression = response["expression"];
+        switch (expression) {
+          case "another":
+            canChangeFace=true;
+
+            i = Random().nextInt(faces.length);
+            break;
+            
+          case "angry":
+            canChangeFace=true;
+
+            i = 3;
+            break;
+          default:
+            bool find = false;
+            for (int x = 0; x < faces.length; x++) {
+              if (faces[x].contains(expression)) {
+            canChangeFace=true;
+
+                find = true;
+                i = x;
+                break;
+              }
+            }
+            if (find == false) {
+              AlanVoice.activate();
+              AlanVoice.playText("Sorry i can not do this expression");
+            }
+            break;
+        }
+        setState(() {});
       }
     }
-    // switch(response[“command”]){
-    //   case “command_1”:
-    //         //do something according to command_1
-    //         break;
-    //   case “command_2”:
-    //         //do something according to command_2
-    //         break;
-    //   default:
-    //         break;
+  }
+
+// void updateFace() async{
+//   int x=0;
+//   while(true){
+//     print(x++);
+//     if(x==50000) break;
+//   }
+// }
+  @override
+  void initState() {
+    // updateFace();
+    // height=MediaQuery.of(context).size.height;
+    // width=MediaQuery.ofR(context).size.width;
+
+    initializeTopics();
+    AlanVoice.callbacks.add((command) => _handleCommand(command.data));
+    AlanVoice.onButtonState.add((event) {
+      ButtonState x;
+
+      print("-----------------------------------------------------");
+      print(event.name.toString());
+      if (event.name.toString() == "REPLY") {
+        canChangeFace=false;
+        setState(() {
+          i = 20;
+        });
+      } else {
+        if(canChangeFace==false) {
+          setState(() {
+          i = 6;
+        });
+        }
+        if(arja3==true){
+arja3=true;
+publishOrder(90);
+        }
+      }
+    });
+    super.initState();
+    WidgetsBinding.instance?.addObserver(this);
+        WidgetsBinding.instance!.addPostFrameCallback((_){
+
+          AlanVoice.activate();
+        AlanVoice.playText("Please say your password");
+          dialog..show();
+        });
+  
   }
 
   @override
-  void initState() {
-    ros = Ros(url: 'ws://172.18.173.58:9090');
+  void dispose() {
+    WidgetsBinding.instance?.removeObserver(this);
+    super.dispose();
+  }
+
+  Future<void> initializeTopics() async {
+    ros = Ros(url: rosUrl);
     display = Topic(
         ros: ros,
         name: '/sensors',
@@ -312,21 +619,45 @@ class _MyHomePageState extends State<MyHomePage> {
     order = Topic(
         ros: ros,
         name: '/order',
-        type: "std_msgd=s/Int32",
+        type: "std_msgs/Int32",
+        reconnectOnClose: true,
+        queueLength: 10,
+        queueSize: 10);
+    name = Topic(
+        ros: ros,
+        name: '/name',
+        type: "std_msgs/String",
+        reconnectOnClose: true,
+        queueLength: 10,
+        queueSize: 10);
+    recognition = Topic(
+        ros: ros,
+        name: '/recognition',
+        type: "std_msgs/String",
+        reconnectOnClose: true,
+        queueLength: 10,
+        queueSize: 10);
+    facesTopic = Topic(
+        ros: ros,
+        name: '/faces',
+        type: "std_msgs/String",
+        reconnectOnClose: true,
+        queueLength: 10,
+        queueSize: 10);
+    talk = Topic(
+        ros: ros,
+        name: '/talk',
+        type: "std_msgs/String",
         reconnectOnClose: true,
         queueLength: 10,
         queueSize: 10);
     ros.connect();
-    initializeTopics();
-    // dialog..show();
-    AlanVoice.callbacks.add((command) => _handleCommand(command.data));
-
-    super.initState();
-  }
-
-  Future<void> initializeTopics() async {
-    await display.subscribe(subscribeHandler);
+    await name.advertise();
+    await recognition.advertise();
     await order.advertise();
+    await display.subscribe(subscribeHandler);
+    await facesTopic.subscribe(facesSub);
+    await talk.subscribe(talkSub);
   }
 
   void publishOrder(int x) async {
@@ -335,23 +666,47 @@ class _MyHomePageState extends State<MyHomePage> {
     print('done publihsed');
   }
 
-  void _incrementCounter() {
-    AlanVoice.activate();
+  void publishName(String n) async {
+    var msg = {'data': n};
+    await name.publish(msg);
+    print('done publihsing face name');
+  }
 
-    AlanVoice.playText("Please say your Password");
-    // setState(() {
-    //   i = (i + 1) % faces.length;
-    // });
-    dialog..show();
+  void publishRecognition(String b) async {
+    var msg = {'data': b};
+    await recognition.publish(msg);
+    print('done publihsing in recognition');
+  }
+
+  void _incrementCounter() async{
+String? ip = await inf.WifiInfo().getWifiIP(); // WifiFlutte ().getWifiIP();
+print(ip);
+print("eeeeeeeeeeeeeeeeeeeeee");
+
+String subnet = ip!.substring(0, ip.lastIndexOf('.'));
+int port = 80;
+
+final stream = NetworkAnalyzer.discover2(subnet, port);
+stream.listen((NetworkAddress addr) {
+  if (addr.exists) {
+    print('Found device: ${addr.ip}');
+  }
+});
+    setState(() {
+      i = (i + 1) % faces.length;
+    });
+    // dialog..show();
   }
 
   void _decrementCounter() {
-    publishOrder(i % 5);
-    AlanVoice.activate();
-    AlanVoice.playText("previous");
+    // AlanVoice.showButton();
+    // publishOrder(i % 5);
+    // active();
+    // AlanVoice.playText("previous");
     setState(() {
       i = max((i - 1) % faces.length, 0);
     });
+    canSay = true;
   }
 
   @override
@@ -406,7 +761,6 @@ class _MyHomePageState extends State<MyHomePage> {
         )
       ])),
     );
-
     return Scaffold(
       // appBar: AppBar(
       //   // Here we take the value from the MyHomePage object that was created by
@@ -419,17 +773,101 @@ class _MyHomePageState extends State<MyHomePage> {
         // in the middle of the parent.
         child: GestureDetector(
           child: RotatedBox(
-            quarterTurns: 3,
-            child: Image.asset(
-              faces[i],
-              fit: BoxFit.cover,
-              height: double.infinity,
-              width: double.infinity,
-              alignment: Alignment.center,
-            ),
-          ),
+              quarterTurns: 3,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Image.asset(
+                    faces[i],
+                    fit: BoxFit.fill,
+                    height: double.infinity,
+                    width: double.infinity,
+                    alignment: Alignment.center,
+                  ),
+                  if (param == true)
+                    Card(
+                        elevation: 50,
+                        //margin: EdgeInsets.all(50),
+                        color: Colors.grey,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  "RosBridge IP :" + this.ros.url,
+                                ),
+                                Icon(
+                                  Icons.camera,
+                                  color: this.ros.status == Status.connected
+                                      ? Colors.green
+                                      : Colors.redAccent,
+                                ),
+                              ],
+                            ),
+                            TextField(onChanged: (value) {
+                              setState(() {
+                                rosUrl = rosUrl = "ws://"+value+":9090";
+                                initializeTopics();
+                              });
+                            },
+                            ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  "Camera IP :" + cameraIP,
+                                ),
+                                Icon(
+                                  Icons.settings,
+                                  color: this.ros.status == Status.connected
+                                      ? Colors.green
+                                      : Colors.redAccent,
+                                ),
+                              ],
+                            ),
+                            TextField(onSubmitted: (value) {
+                              setState(() {
+                                cameraIP = value.trim();
+                              });
+                            }),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  "Devices IP:" + devicesIP,
+                                ),
+                                Icon(
+                                  Icons.devices_rounded,
+                                  color: espActive == true
+                                      ? Colors.green
+                                      : Colors.redAccent,
+                                ),
+                              ],
+                            ),
+                            TextField(
+                              onSubmitted: (value) {
+                                setState(() {
+                                  devicesIP = value.trim();
+                                });
+                              },
+                            )
+                          ],
+                        ))
+                ],
+              )),
           onTap: _incrementCounter,
           onDoubleTap: _decrementCounter,
+          onLongPress: (){
+    AlanVoice.hideButton();
+
+          },
+          onHorizontalDragDown: (e){
+    AlanVoice.showButton();
+
+          },
         ),
         // floatingActionButton: FloatingActionButton(
         //   onPressed: _incrementCounter,
@@ -439,340 +877,3 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
-
-
-
-
-
-
-
-// import 'package:awesome_dialog/awesome_dialog.dart';
-// import 'package:flutter/material.dart';
-
-// // import 'routes.dart';
-
-// void main() => runApp(MyApp());
-
-// class MyApp extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return MaterialApp(
-//       title: 'Fancy Dialog Example',
-//       theme: ThemeData.dark(),
-//       home: HomePage()
-//       // initialRoute: '/',
-//       // onGenerateRoute: RouteGenerator.generateRoute,
-//     );
-//   }
-// }
-
-// class HomePage extends StatefulWidget {
-//   const HomePage({
-//     Key? key,
-//   }) : super(key: key);
-
-//   @override
-//   _HomePageState createState() => _HomePageState();
-// }
-
-// class _HomePageState extends State<HomePage> {
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//         appBar: AppBar(
-//           title: Text('Awesome Dialog Example'),
-//         ),
-//         body: Center(
-//             child: Container(
-//           padding: EdgeInsets.all(16),
-//           child: SingleChildScrollView(
-//             child: Column(
-//               children: <Widget>[
-//                 AnimatedButton(
-//                   text: 'Info Dialog fixed width and sqare buttons',
-//                   pressEvent: () {
-//                     AwesomeDialog(
-//                       context: context,
-//                       dialogType: DialogType.INFO_REVERSED,
-//                       borderSide: BorderSide(color: Colors.green, width: 2),
-//                       width: 280,
-//                       buttonsBorderRadius: BorderRadius.all(Radius.circular(2)),
-//                       headerAnimationLoop: false,
-//                       animType: AnimType.BOTTOMSLIDE,
-//                       title: 'INFO',
-//                       desc: 'Dialog description here...',
-//                       showCloseIcon: true,
-//                       btnCancelOnPress: () {},
-//                       btnOkOnPress: () {},
-//                     )..show();
-//                   },
-//                 ),
-//                 SizedBox(
-//                   height: 16,
-//                 ),
-//                 AnimatedButton(
-//                   text: 'Question Dialog With Custom BTN Style',
-//                   pressEvent: () {
-//                     AwesomeDialog(
-//                       context: context,
-//                       dialogType: DialogType.QUESTION,
-//                       headerAnimationLoop: false,
-//                       animType: AnimType.BOTTOMSLIDE,
-//                       title: 'Question',
-//                       desc: 'Dialog description here...',
-//                       buttonsTextStyle: TextStyle(color: Colors.black),
-//                       showCloseIcon: true,
-//                       btnCancelOnPress: () {},
-//                       btnOkOnPress: () {},
-//                     )..show();
-//                   },
-//                 ),
-//                 SizedBox(
-//                   height: 16,
-//                 ),
-//                 AnimatedButton(
-//                   text: 'Info Dialog Without buttons',
-//                   pressEvent: () {
-//                     AwesomeDialog(
-//                       context: context,
-//                       headerAnimationLoop: true,
-//                       animType: AnimType.BOTTOMSLIDE,
-//                       title: 'INFO',
-//                       desc:
-//                           'Lorem ipsum dolor sit amet consectetur adipiscing elit eget ornare tempus, vestibulum sagittis rhoncus felis hendrerit lectus ultricies duis vel, id morbi cum ultrices tellus metus dis ut donec. Ut sagittis viverra venenatis eget euismod faucibus odio ligula phasellus,',
-//                     )..show();
-//                   },
-//                 ),
-//                 SizedBox(
-//                   height: 16,
-//                 ),
-//                 AnimatedButton(
-//                   text: 'Warning Dialog',
-//                   color: Colors.orange,
-//                   pressEvent: () {
-//                     AwesomeDialog(
-//                         context: context,
-//                         dialogType: DialogType.WARNING,
-//                         headerAnimationLoop: false,
-//                         animType: AnimType.TOPSLIDE,
-//                         showCloseIcon: true,
-//                         closeIcon: Icon(Icons.close_fullscreen_outlined),
-//                         title: 'Warning',
-//                         desc:
-//                             'Dialog description here..................................................',
-//                         btnCancelOnPress: () {},
-//                         onDissmissCallback: (type) {
-//                           debugPrint('Dialog Dissmiss from callback $type');
-//                         },
-//                         btnOkOnPress: () {})
-//                       ..show();
-//                   },
-//                 ),
-//                 SizedBox(
-//                   height: 16,
-//                 ),
-//                 AnimatedButton(
-//                   text: 'Error Dialog',
-//                   color: Colors.red,
-//                   pressEvent: () {
-//                     AwesomeDialog(
-//                         context: context,
-//                         dialogType: DialogType.ERROR,
-//                         animType: AnimType.RIGHSLIDE,
-//                         headerAnimationLoop: true,
-//                         title: 'Error',
-//                         desc:
-//                             'Dialog description here..................................................',
-//                         btnOkOnPress: () {},
-//                         btnOkIcon: Icons.cancel,
-//                         btnOkColor: Colors.red)
-//                       ..show();
-//                   },
-//                 ),
-//                 SizedBox(
-//                   height: 16,
-//                 ),
-//                 AnimatedButton(
-//                   text: 'Succes Dialog',
-//                   color: Colors.green,
-//                   pressEvent: () {
-//                     AwesomeDialog(
-//                         context: context,
-//                         animType: AnimType.LEFTSLIDE,
-//                         headerAnimationLoop: false,
-//                         dialogType: DialogType.SUCCES,
-//                         showCloseIcon: true,
-//                         title: 'Succes',
-//                         desc:
-//                             'Dialog description here..................................................',
-//                         btnOkOnPress: () {
-//                           debugPrint('OnClcik');
-//                         },
-//                         btnOkIcon: Icons.check_circle,
-//                         onDissmissCallback: (type) {
-//                           debugPrint('Dialog Dissmiss from callback $type');
-//                         })
-//                       ..show();
-//                   },
-//                 ),
-//                 SizedBox(
-//                   height: 16,
-//                 ),
-//                 AnimatedButton(
-//                   text: 'No Header Dialog',
-//                   color: Colors.cyan,
-//                   pressEvent: () {
-//                     AwesomeDialog(
-//                       context: context,
-//                       headerAnimationLoop: false,
-//                       dialogType: DialogType.NO_HEADER,
-//                       title: 'No Header',
-//                       desc:
-//                           'Dialog description here..................................................',
-//                       btnOkOnPress: () {
-//                         debugPrint('OnClcik');
-//                       },
-//                       btnOkIcon: Icons.check_circle,
-//                     )..show();
-//                   },
-//                 ),
-//                 SizedBox(
-//                   height: 16,
-//                 ),
-//                 AnimatedButton(
-//                   text: 'Custom Body Dialog',
-//                   color: Colors.blueGrey,
-//                   pressEvent: () {
-//                     AwesomeDialog(
-//                       context: context,
-//                       animType: AnimType.SCALE,
-//                       dialogType: DialogType.INFO,
-//                       body: Center(
-//                         child: Text(
-//                           'If the body is specified, then title and description will be ignored, this allows to further customize the dialogue.',
-//                           style: TextStyle(fontStyle: FontStyle.italic),
-//                         ),
-//                       ),
-//                       title: 'This is Ignored',
-//                       desc: 'This is also Ignored',
-//                     )..show();
-//                   },
-//                 ),
-//                 SizedBox(
-//                   height: 16,
-//                 ),
-//                 AnimatedButton(
-//                   text: 'Auto Hide Dialog',
-//                   color: Colors.purple,
-//                   pressEvent: () {
-//                     AwesomeDialog(
-//                       context: context,
-//                       dialogType: DialogType.INFO,
-//                       animType: AnimType.SCALE,
-//                       title: 'Auto Hide Dialog',
-//                       desc: 'AutoHide after 2 seconds',
-//                       autoHide: Duration(seconds: 2),
-//                     )..show();
-//                   },
-//                 ),
-//                 SizedBox(
-//                   height: 16,
-//                 ),
-//                 AnimatedButton(
-//                   text: 'Testing Dialog',
-//                   color: Colors.orange,
-//                   pressEvent: () {
-//                     AwesomeDialog(
-//                       context: context,
-//                       keyboardAware: true,
-//                       dismissOnBackKeyPress: false,
-//                       dialogType: DialogType.WARNING,
-//                       animType: AnimType.BOTTOMSLIDE,
-//                       btnCancelText: "Cancel Order",
-//                       btnOkText: "Yes, I will pay",
-//                       title: 'Continue to pay?',
-//                       // padding: const EdgeInsets.all(5.0),
-//                       desc:
-//                           'Please confirm that you will pay 3000 INR within 30 mins. Creating orders without paying will create penalty charges, and your account may be disabled.',
-//                       btnCancelOnPress: () {},
-//                       btnOkOnPress: () {},
-//                     ).show();
-//                   },
-//                 ),
-//                 SizedBox(
-//                   height: 16,
-//                 ),
-//                 AnimatedButton(
-//                   text: 'Body with Input',
-//                   color: Colors.blueGrey,
-//                   pressEvent: () {
-//                     late AwesomeDialog dialog;
-//                     dialog = AwesomeDialog(
-//                       context: context,
-//                       animType: AnimType.SCALE,
-//                       dialogType: DialogType.INFO,
-//                       keyboardAware: true,
-//                       body: Padding(
-//                         padding: const EdgeInsets.all(8.0),
-//                         child: Column(
-//                           children: <Widget>[
-//                             Text(
-//                               'Form Data',
-//                               style: Theme.of(context).textTheme.headline6,
-//                             ),
-//                             SizedBox(
-//                               height: 10,
-//                             ),
-//                             Material(
-//                               elevation: 0,
-//                               color: Colors.blueGrey.withAlpha(40),
-//                               child: TextFormField(
-//                                 autofocus: true,
-//                                 minLines: 1,
-//                                 decoration: InputDecoration(
-//                                   border: InputBorder.none,
-//                                   labelText: 'Title',
-//                                   prefixIcon: Icon(Icons.text_fields),
-//                                 ),
-//                               ),
-//                             ),
-//                             SizedBox(
-//                               height: 10,
-//                             ),
-//                             Material(
-//                               elevation: 0,
-//                               color: Colors.blueGrey.withAlpha(40),
-//                               child: TextFormField(
-//                                 autofocus: true,
-//                                 keyboardType: TextInputType.multiline,
-//                                 maxLengthEnforced: true,
-//                                 minLines: 2,
-//                                 maxLines: null,
-//                                 decoration: InputDecoration(
-//                                   border: InputBorder.none,
-//                                   labelText: 'Description',
-//                                   prefixIcon: Icon(Icons.text_fields),
-//                                 ),
-//                               ),
-//                             ),
-//                             SizedBox(
-//                               height: 10,
-//                             ),
-//                             AnimatedButton(
-//                                 isFixedHeight: false,
-//                                 text: 'Close',
-//                                 pressEvent: () {
-//                                   dialog.dismiss();
-//                                 })
-//                           ],
-//                         ),
-//                       ),
-//                     )..show();
-//                   },
-//                 ),
-//               ],
-//             ),
-//           ),
-//         )));
-//   }
-// }
