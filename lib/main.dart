@@ -9,9 +9,8 @@ import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:roslibdart/roslibdart.dart';
 import 'package:flutter_ripple/flutter_ripple.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:ping_discover_network_forked/ping_discover_network_forked.dart';
-import 'package:wifi_info_flutter/wifi_info_flutter.dart'as inf;
-
+// import 'package:ping_discover_network_forked/ping_discover_network_forked.dart';
+// import 'package:wifi_info_flutter/wifi_info_flutter.dart' as inf;
 
 void main() {
   runApp(const MyApp());
@@ -75,7 +74,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   bool canSay = false;
   double height = 0;
   double width = 0;
-  bool canChangeFace=false;
+  bool canChangeFace = false;
   bool espActive = false;
   _MyHomePageState() {
     AlanVoice.addButton(
@@ -99,7 +98,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   int statecap = 11;
   bool password = true;
   String rosUrl = 'ws://192.168.184.112:9090';
-  String cameraIP="192.168.233.233";
+  String cameraIP = "192.168.233.233";
   var dialog;
   String CurrentFace = "unknown";
   late int ir1, ir2, ir3, sharp1, sharp2, gyrox, gyroy, gyroz;
@@ -235,7 +234,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
         publishOrder(110);
       });
       AlanVoice.playText("yayyy this is very relaxing");
-      arja3=true;
+      arja3 = true;
       //sleep(Duration(seconds: 2));
       // setState(() {
       //   i = 11;
@@ -521,13 +520,13 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
         String expression = response["expression"];
         switch (expression) {
           case "another":
-            canChangeFace=true;
+            canChangeFace = true;
 
             i = Random().nextInt(faces.length);
             break;
-            
+
           case "angry":
-            canChangeFace=true;
+            canChangeFace = true;
 
             i = 3;
             break;
@@ -535,7 +534,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
             bool find = false;
             for (int x = 0; x < faces.length; x++) {
               if (faces[x].contains(expression)) {
-            canChangeFace=true;
+                canChangeFace = true;
 
                 find = true;
                 i = x;
@@ -574,31 +573,29 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
       print("-----------------------------------------------------");
       print(event.name.toString());
       if (event.name.toString() == "REPLY") {
-        canChangeFace=false;
+        canChangeFace = false;
         setState(() {
           i = 20;
         });
       } else {
-        if(canChangeFace==false) {
+        if (canChangeFace == false) {
           setState(() {
-          i = 6;
-        });
+            i = 6;
+          });
         }
-        if(arja3==true){
-arja3=true;
-publishOrder(90);
+        if (arja3 == true) {
+          arja3 = true;
+          publishOrder(90);
         }
       }
     });
     super.initState();
     WidgetsBinding.instance?.addObserver(this);
-        WidgetsBinding.instance!.addPostFrameCallback((_){
-
-          AlanVoice.activate();
-        AlanVoice.playText("Please say your password");
-          dialog..show();
-        });
-  
+    WidgetsBinding.instance!.addPostFrameCallback((_) {
+      AlanVoice.activate();
+      AlanVoice.playText("Please say your password");
+      dialog..show();
+    });
   }
 
   @override
@@ -678,20 +675,22 @@ publishOrder(90);
     print('done publihsing in recognition');
   }
 
-  void _incrementCounter() async{
-String? ip = await inf.WifiInfo().getWifiIP(); // WifiFlutte ().getWifiIP();
-print(ip);
-print("eeeeeeeeeeeeeeeeeeeeee");
+  void _incrementCounter() async {
+    // String? ip = await inf.WifiInfo().getWifiName();
+    // // getWifiIP(); // WifiFlutte ().getWifiIP();
+    // print(ip);
+    // print("eeeeeeeeeeeeeeeeeeeeee");
 
-String subnet = ip!.substring(0, ip.lastIndexOf('.'));
-int port = 80;
-
-final stream = NetworkAnalyzer.discover2(subnet, port);
-stream.listen((NetworkAddress addr) {
-  if (addr.exists) {
-    print('Found device: ${addr.ip}');
-  }
-});
+    // String subnet = ip!.substring(0, ip.lastIndexOf('.'));
+    // int port = 80;
+    // print(ip);
+    // final stream = NetworkAnalyzer.discover2(subnet, port);
+    // stream.listen((NetworkAddress addr) {
+    //   if (addr.exists) {
+    //     print('Found device: ${addr.ip}');
+    //   }
+    // });
+    AlanVoice.showButton();
     setState(() {
       i = (i + 1) % faces.length;
     });
@@ -807,12 +806,13 @@ stream.listen((NetworkAddress addr) {
                                 ),
                               ],
                             ),
-                            TextField(onChanged: (value) {
-                              setState(() {
-                                rosUrl = rosUrl = "ws://"+value+":9090";
-                                initializeTopics();
-                              });
-                            },
+                            TextField(
+                              onChanged: (value) {
+                                setState(() {
+                                  rosUrl = rosUrl = "ws://" + value + ":9090";
+                                  initializeTopics();
+                                });
+                              },
                             ),
                             Row(
                               mainAxisSize: MainAxisSize.min,
@@ -860,13 +860,8 @@ stream.listen((NetworkAddress addr) {
               )),
           onTap: _incrementCounter,
           onDoubleTap: _decrementCounter,
-          onLongPress: (){
-    AlanVoice.hideButton();
-
-          },
-          onHorizontalDragDown: (e){
-    AlanVoice.showButton();
-
+          onLongPress: () {
+            AlanVoice.hideButton();
           },
         ),
         // floatingActionButton: FloatingActionButton(
