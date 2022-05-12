@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'package:alan_voice/alan_callback.dart';
 import 'package:alan_voice/alan_voice.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:progress_state_button/progress_button.dart' as pb;
@@ -9,11 +12,25 @@ import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:roslibdart/roslibdart.dart';
 import 'package:flutter_ripple/flutter_ripple.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:url_launcher/url_launcher.dart' as url;
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'screens/video_call_screen.dart';
+import 'patient_service.dart';
+
 // import 'package:ping_discover_network_forked/ping_discover_network_forked.dart';
 // import 'package:wifi_info_flutter/wifi_info_flutter.dart' as inf;
 
 void main() {
-  runApp(const MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  Firebase.initializeApp();
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
+  SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft])
+      .then((_) {
+    runApp(const MyApp());
+  });
 }
 
 class MyApp extends StatelessWidget {
@@ -147,7 +164,8 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
     "assets/images/orb_puffing.gif",
   ];
   String CurrentTrack = "assets/music/SOFI TUKKER - Purple Hat.mp3";
-
+  PatientService ps = PatientService();
+  FirebaseFirestore db = FirebaseFirestore.instance;
   void active() {
     if (AlanVoice.isActive() == false) {
       AlanVoice.activate();
@@ -240,6 +258,14 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
       //   i = 11;
       // });
     }
+  }
+
+  Future<void> call(int phoneNumber) async {
+    final Uri launchUri = Uri(
+      scheme: 'tel',
+      path: phoneNumber.toString(),
+    );
+    await url.launchUrl(launchUri);
   }
 
   void checkSharp(double front, double back) {
@@ -548,6 +574,16 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
             break;
         }
         setState(() {});
+      } else if (response["command"] == "servo") {
+        int degree = 90;
+        degree = int.parse(response["command"]);
+        publishOrder(degree);
+      } else if (response["command"] == "call") {
+        int number = 90;
+        number = int.parse(response["number"]);
+        print(number);
+        call(number);
+        print(number);
       }
     }
   }
@@ -596,6 +632,11 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
       AlanVoice.playText("Please say your password");
       dialog..show();
     });
+    final docRef = db.collection("patients").doc("SF");
+    docRef.snapshots().listen(
+          (event) => print("current data: ${event.data()}"),
+          onError: (error) => print("Listen failed: $error"),
+        );
   }
 
   @override
@@ -676,6 +717,8 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   }
 
   void _incrementCounter() async {
+    ps.toggleOnlieStatus(true);
+    // call(28705546);
     // String? ip = await inf.WifiInfo().getWifiName();
     // // getWifiIP(); // WifiFlutte ().getWifiIP();
     // print(ip);
@@ -698,6 +741,8 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   }
 
   void _decrementCounter() {
+    ps.toggleOnlieStatus(true);
+
     // AlanVoice.showButton();
     // publishOrder(i % 5);
     // active();

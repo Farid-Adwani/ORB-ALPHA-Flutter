@@ -1,0 +1,39 @@
+{
+    "project_info": {
+      "project_number": "543815200519",
+      "project_id": "flutter-video-chat-27684",
+      "storage_bucket": "flutter-video-chat-27684.appspot.com"
+    },
+    "client": [
+      {
+        "client_info": {
+          "mobilesdk_app_id": "1:543815200519:android:bab68dd7fd0578d8b39fa2",
+          "android_client_info": {
+            "package_name": "com.example.flutter_video_chat"
+          }
+        },
+        "oauth_client": [
+          {
+            "client_id": "543815200519-4obmqclq7lv9bk5m70gbu0i7lipllk7h.apps.googleusercontent.com",
+            "client_type": 3
+          }
+        ],
+        "api_key": [
+          {
+            "current_key": "AIzaSyAYwk2naO0xu1m9EGRqWMZMFskJOiWrjco"
+          }
+        ],
+        "services": {
+          "appinvite_service": {
+            "other_platform_oauth_client": [
+              {
+                "client_id": "543815200519-4obmqclq7lv9bk5m70gbu0i7lipllk7h.apps.googleusercontent.com",
+                "client_type": 3
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "configuration_version": "1"
+  }
