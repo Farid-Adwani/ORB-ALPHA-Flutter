@@ -23,14 +23,14 @@ import 'patient_service.dart';
 // import 'package:ping_discover_network_forked/ping_discover_network_forked.dart';
 // import 'package:wifi_info_flutter/wifi_info_flutter.dart' as inf;
 
-void main() {
-  WidgetsFlutterBinding.ensureInitialized();
-  Firebase.initializeApp();
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
-  SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft])
-      .then((_) {
-    runApp(const MyApp());
-  });
+void main() async {
+  // WidgetsFlutterBinding.ensureInitialized();
+  // await Firebase.initializeApp();
+  // SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
+  // SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft])
+  // .then((_) {
+  runApp(const MyApp());
+  // });
 }
 
 class MyApp extends StatelessWidget {
@@ -165,7 +165,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   ];
   String CurrentTrack = "assets/music/SOFI TUKKER - Purple Hat.mp3";
   PatientService ps = PatientService();
-  FirebaseFirestore db = FirebaseFirestore.instance;
+  late FirebaseFirestore db;
   void active() {
     if (AlanVoice.isActive() == false) {
       AlanVoice.activate();
@@ -358,6 +358,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
         });
       }
     } catch (e) {
+      ps.toggleDevice(device, false);
       AlanVoice.activate();
       AlanVoice.playText(
           "I can not do that.Please check the ip address of your the ESP");
@@ -626,13 +627,25 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
       }
     });
     super.initState();
+
+    Firebase.initializeApp().whenComplete(() {
+      print("completed");
+      setState(() {});
+    });
+    // db = FirebaseFirestore.instance;
+    print("rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr");
+
     WidgetsBinding.instance?.addObserver(this);
     WidgetsBinding.instance!.addPostFrameCallback((_) {
       AlanVoice.activate();
       AlanVoice.playText("Please say your password");
+      Firebase.initializeApp();
+
       dialog..show();
     });
-    final docRef = db.collection("patients").doc("SF");
+    final docRef = FirebaseFirestore.instance
+        .collection("patients")
+        .doc(PatientService.userId);
     docRef.snapshots().listen(
           (event) => print("current data: ${event.data()}"),
           onError: (error) => print("Listen failed: $error"),

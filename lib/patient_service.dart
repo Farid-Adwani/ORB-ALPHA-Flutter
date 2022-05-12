@@ -5,7 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 class PatientService {
-  String? userId = "dLKr1teQlsmBOMwQB5tD";
+  static String? userId = "dLKr1teQlsmBOMwQB5tD";
 
   Future<void> toggleDevice(String device, bool deviceStatus) async {
     FirebaseFirestore db = FirebaseFirestore.instance;
